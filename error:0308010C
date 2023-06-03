@@ -1,3 +1,7 @@
 windows命令提示符:
 
 set NODE_OPTIONS=--openssl-legacy-provider
+
+package.json备份内容
+"build:prod": "vue-cli-service build",
+"build:stage": "vue-cli-service build --mode staging",
