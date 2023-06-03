@@ -1,6 +1,7 @@
 windows命令提示符:
 
 set NODE_OPTIONS=--openssl-legacy-provider
+备注：win10设置到环境变量，重启cmd永久有效
 
 package.json备份内容
 "build:prod": "vue-cli-service build",
