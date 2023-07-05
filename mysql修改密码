@@ -1,0 +1,40 @@
+本人用的mysql8版本
+看到网上很多教程，什么修改配置文件my.ini。在8版本根本没用。以下是8版本解决办法。亲测可用。
+
+1、用管理员身份打开命令行工具。（强调：管理员身份）
+
+2、停止mysql服务：
+
+3、输入以下命令无密码启动mysql
+mysqld --console --skip-grant-tables --shared-memory
+
+
+4、 另开一个命令行窗口，输入mysql -u root无密码登录；
+mysql -u root
+这时你的Navicat已经可以无密码登录了。
+
+5、登录进去后依次输入以下命令：
+use mysql;
+#查看用户名以及密码
+select user, host, authentication from user;
+
+6、重置你的密码
+
+mysql> use mysql;
+mysql> flush privileges;
+mysql> alter user 'root'@'localhost'IDENTIFIED WITH mysql_native_password BY '你的密码';
+mysql> flush privileges;
+
+7、重启你的mysql数据库
+
+
+备注：
+ERROR 1396 (HY000): Operation ALTER USER failed for ‘root‘@‘localhost‘
+尝试一：重置密码为空
+
+先登录MySQL，重置密码为空，并刷新
+
+update user set authentication_string='' where user='root';
+ 
+flush privileges;
+再用上面的方法修改密码
