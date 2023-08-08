@@ -1,0 +1,720 @@
+
+string fileName = "xxx会员信息 - " + model.NAME + "-" + model.MOBILE;
+//1、初始化文档
+XWPFDocument m_Doc = new XWPFDocument();//创建word文档
+
+#region 设置页面纸张及边距等
+CT_SectPr m_SectPrs = new CT_SectPr(); //设置页面格式(宽度)        A4纵向            
+m_SectPrs.pgSz.h = (ulong)16838;
+m_SectPrs.pgSz.w = (ulong)11906;
+m_SectPrs.pgMar.left = (ulong)200;//左边距
+m_SectPrs.pgMar.right = (ulong)200;//右边距
+m_SectPrs.pgMar.top = "200";//上边距
+m_SectPrs.pgMar.bottom = "200";//下边距
+m_Doc.Document.body.sectPr = m_SectPrs;
+
+#endregion
+
+#region 创建主标题段落
+XWPFParagraph p1 = m_Doc.CreateParagraph();//创建段落
+p1.Alignment = ParagraphAlignment.CENTER;//居中显示
+XWPFRun row1 = p1.CreateRun();//开始创建
+row1.FontFamily = "黑体";//设置字体
+row1.FontSize = 20;//设置字体大小
+row1.IsBold = true;//是否加粗
+row1.SetText("西山区留学生联谊会会员申请表");//设置文本
+row1.SetColor("black");//设置字体颜色
+
+XWPFParagraph p2 = m_Doc.CreateParagraph();//创建段落
+p2.Alignment = ParagraphAlignment.CENTER;//居中显示
+XWPFRun row2 = p2.CreateRun();//开始创建
+row2.SetText("申请日期：" + model.ADD_TIME.ToString("yyyy-MM-dd"));//设置文本
+row2.SetColor("black");//设置字体颜色
+
+#endregion
+
+#region 创建表格 并设置每列宽度
+XWPFTable table = m_Doc.CreateTable(14, 5);//创建表格一个13行5列的表格
+table.RemoveRow(0);//去掉第一行空白
+//设置每列宽度
+table.SetColumnWidth(0, (int)((21 + 0.72) * 256));
+table.SetColumnWidth(1, (int)((21 + 0.72) * 256));
+table.SetColumnWidth(2, (int)((21 + 0.72) * 256));
+table.SetColumnWidth(3, (int)((21 + 0.72) * 256));
+table.SetColumnWidth(4, (int)((21 + 0.72) * 256));
+
+CT_Tbl m_CTTbl = m_Doc.Document.body.GetTblArray()[0];//获得文档第一张表
+m_CTTbl.AddNewTblPr().jc = new CT_Jc();
+m_CTTbl.AddNewTblPr().jc.val = ST_Jc.center;//表在页面水平居中
+#endregion
+
+#region 第1行姓名、性别、照片     
+XWPFTableRow tr = table.GetRow(0);//获取第1行
+
+//姓名
+XWPFTableCell cell = tr.GetCell(0);
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+XWPFParagraph par = cell.AddParagraph();
+XWPFRun run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("姓名");           
+run.IsBold = true;
+
+
+
+cell = tr.GetCell(1);
+par = cell.AddParagraph();
+run = par.CreateRun();
+run.SetText(model.NAME);
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+//性别
+cell = tr.GetCell(2);
+par = cell.AddParagraph();
+run = par.CreateRun();
+run.SetText("性别");
+run.IsBold = true;
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+cell = tr.GetCell(3);
+par = cell.AddParagraph();
+run = par.CreateRun();
+run.SetText(model.SEX);
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+//照片
+
+cell = tr.GetCell(4);
+CT_Tc ct = cell.GetCTTc();
+CT_TcPr cp = ct.AddNewTcPr();
+cp.AddNewVMerge().val = ST_Merge.restart;//合并行,restart表示合并开始的地方 @continue表示该单元格参与合并
+cp.AddNewVAlign().val = ST_VerticalJc.center;//垂直
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;
+
+par = cell.AddParagraph();
+run = par.CreateRun();
+try
+{
+    if(!string.IsNullOrWhiteSpace(model.POSITION)) {
+        using(FileStream fsImg = new FileStream(Utils.GetMapPath(model.POSITION), FileMode.OpenOrCreate, FileAccess.Read))
+        {
+            //run.AddPicture(fsImg, (int)NPOI.XWPF.UserModel.PictureType.PNG, model.USER_ID + ".png", (int)(90.0 * 9525), (int)(120.0 * 9525));  //长和宽必须乘上9525
+            //上面的方法导出的图片wps里可以打开，office word打不开，所以换了下面的方法
+            var picID = m_Doc.AddPictureData(fsImg, (int)NPOI.XWPF.UserModel.PictureType.PNG);
+            CreatePicture(m_Doc,run, picID, 90, 120);
+        }
+    }                
+}
+catch(Exception ex)
+{
+
+    LogHelper.LogError("导出word图片时报错",ex);
+}
+
+#endregion
+
+#region 第2行出生年月、出生地
+//获取第2行
+tr = table.GetRow(1);//获取第2行
+
+//出生年月
+cell = tr.GetCell(0);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("出生年月");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+cell = tr.GetCell(1);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText(model.BIRTH);
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);//垂直居中
+
+
+//出生地
+cell = tr.GetCell(2);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("出生地");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+cell = tr.GetCell(3);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText(model.BIRTHPLACE);
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);//垂直居中
+
+//照片
+cell = tr.GetCell(4);
+ct = cell.GetCTTc();
+cp = ct.AddNewTcPr();
+cp.AddNewVMerge().val = ST_Merge.@continue;//合并行,restart表示合并开始的地方 @continue表示该单元格参与合并
+cp.AddNewVAlign().val = ST_VerticalJc.center;//垂直
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;
+
+#endregion
+
+#region 第3行民族、国籍
+
+//获取第3行
+tr = table.GetRow(2);//获取第3行
+
+//民族
+cell = tr.GetCell(0);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("民族");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+cell = tr.GetCell(1);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText(model.NATIONAL);
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);//垂直居中
+
+
+//国籍
+cell = tr.GetCell(2);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("国籍");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+cell = tr.GetCell(3);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText(model.PARTY);
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);//垂直居中
+
+//照片
+cell = tr.GetCell(4);
+ct = cell.GetCTTc();
+cp = ct.AddNewTcPr();
+cp.AddNewVMerge().val = ST_Merge.@continue;//合并行,restart表示合并开始的地方 @continue表示该单元格参与合并
+cp.AddNewVAlign().val = ST_VerticalJc.center;//垂直
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;
+#endregion
+
+#region 第4行籍贯、工作单位
+//获取第4行
+tr = table.GetRow(3);//获取第4行
+
+//籍贯
+cell = tr.GetCell(0);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("籍贯");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+cell = tr.GetCell(1);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText(model.HOMETOWN);
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);//垂直居中
+
+//工作单位
+cell = tr.GetCell(2);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("工作单位");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+cell = tr.GetCell(3);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText(model.COMPANY);
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);//垂直居中
+
+
+//照片
+cell = tr.GetCell(4);
+ct = cell.GetCTTc();
+cp = ct.AddNewTcPr();
+cp.AddNewVMerge().val = ST_Merge.@continue;//合并行,restart表示合并开始的地方 @continue表示该单元格参与合并
+cp.AddNewVAlign().val = ST_VerticalJc.center;//垂直
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;
+#endregion
+
+#region 第5行政治面貌、参加工作时间
+//获取第5行
+tr = table.GetRow(4);//获取第5行
+
+//政治面貌
+cell = tr.GetCell(0);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("政治面貌");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+cell = tr.GetCell(1);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText(model.POLITICS);
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);//垂直居中
+
+//参加工作时间
+cell = tr.GetCell(2);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("参加工作时间");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+//合并2列显示工作时间的值
+cell = tr.GetCell(3);
+ct = cell.GetCTTc();
+cp = ct.AddNewTcPr();
+cp.gridSpan = new CT_DecimalNumber();
+cp.gridSpan.val = "2"; //合并2列 3\4 
+cp.AddNewVAlign().val = ST_VerticalJc.center;
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;//单元格内容居中显示
+ct.GetPList()[0].AddNewR().AddNewT().Value = model.WORKTIME;
+
+tr.RemoveCell(4);//移除多余的一个单元格
+
+#endregion
+
+#region 第6行最高学历、专业技术职称
+//获取第6行
+tr = table.GetRow(5);//获取第6行
+
+//最高学历
+cell = tr.GetCell(0);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("最高学历");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+cell = tr.GetCell(1);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText(model.RECODE);
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);//垂直居中
+
+//专业技术职称
+cell = tr.GetCell(2);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("专业技术职称");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+//合并2列显示专业技术职称的值
+cell = tr.GetCell(3);
+ct = cell.GetCTTc();
+cp = ct.AddNewTcPr();
+cp.gridSpan = new CT_DecimalNumber();
+cp.gridSpan.val = "2"; //合并2列 3\4 
+cp.AddNewVAlign().val = ST_VerticalJc.center;
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;//单元格内容居中显示
+ct.GetPList()[0].AddNewR().AddNewT().Value = model.PROFESSIONAL;
+
+tr.RemoveCell(4);//移除多余的一个单元格
+#endregion
+
+#region 第7行所获学位、学历学位是否经国家教育部留学服务中心认证
+
+//获取第7行
+tr = table.GetRow(6);//获取第7行
+
+//最高学历
+cell = tr.GetCell(0);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("所获学位");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+cell = tr.GetCell(1);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText(model.DEGREE);
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);//垂直居中
+
+//学历学位是否经国家教育部留学服务中心认证，合并2列显示
+cell = tr.GetCell(2);
+ct = cell.GetCTTc();
+cp = ct.AddNewTcPr();
+cp.gridSpan = new CT_DecimalNumber();
+cp.gridSpan.val = "2"; //合并2列 3\4 
+cp.AddNewVAlign().val = ST_VerticalJc.center;
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;//单元格内容居中显示
+//ct.GetPList()[0].AddNewR().AddNewT().Value = "";
+
+cell = tr.GetCell(2);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("学历学位是否经国家教育部留学服务中心认证");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+cell = tr.GetCell(3);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText(model.ISCOUNTRYAUTH);
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+tr.RemoveCell(4);//移除多余的一个单元格
+
+#endregion
+
+#region 第8行留学国家、出国留学起止时间
+
+//获取第8行
+tr = table.GetRow(7);//获取第8行
+
+//留学国家
+cell = tr.GetCell(0);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("留学国家");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+cell = tr.GetCell(1);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText(model.STUDYABROADCOUNTRY);
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);//垂直居中
+
+//出国留学起止时间
+cell = tr.GetCell(2);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("出国留学起止时间");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+//合并2列显示出国留学起止时间的值
+cell = tr.GetCell(3);
+ct = cell.GetCTTc();
+cp = ct.AddNewTcPr();
+cp.gridSpan = new CT_DecimalNumber();
+cp.gridSpan.val = "2"; //合并2列 3\4 
+cp.AddNewVAlign().val = ST_VerticalJc.center;
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;//单元格内容居中显示
+ct.GetPList()[0].AddNewR().AddNewT().Value = model.STARTSTUDYDATE + "-" + model.ENDSTUDYDATE;
+
+tr.RemoveCell(4);//移除多余的一个单元格
+#endregion
+
+#region 第9行留学院校、留学专业
+
+//获取第9行
+tr = table.GetRow(8);//获取第9行
+
+//留学院校
+cell = tr.GetCell(0);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("留学院校");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+cell = tr.GetCell(1);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText(model.SCHOOL);
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);//垂直居中
+
+//留学专业
+cell = tr.GetCell(2);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("留学专业");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+//合并2列显示留学专业的值
+cell = tr.GetCell(3);
+ct = cell.GetCTTc();
+cp = ct.AddNewTcPr();
+cp.gridSpan = new CT_DecimalNumber();
+cp.gridSpan.val = "2"; //合并2列 3\4 
+cp.AddNewVAlign().val = ST_VerticalJc.center;
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;//单元格内容居中显示
+ct.GetPList()[0].AddNewR().AddNewT().Value = model.SUBJECT;
+
+tr.RemoveCell(4);//移除多余的一个单元格
+#endregion
+
+#region 第10行掌握外语水平
+//获取第10行
+tr = table.GetRow(9);//获取第10行
+//合并2列显示掌握外语水平
+cell = tr.GetCell(0);
+ct = cell.GetCTTc();
+cp = ct.AddNewTcPr();
+cp.gridSpan = new CT_DecimalNumber();
+cp.gridSpan.val = "2"; //合并2列 3\4 
+cp.AddNewVAlign().val = ST_VerticalJc.center;
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;//单元格内容居中显示
+//ct.GetPList()[0].AddNewR().AddNewT().Value = "";
+
+tr.RemoveCell(1);//移除多余的一个单元格
+
+cell = tr.GetCell(0);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("掌握外语水平");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+
+
+//合并2列显示掌握外语水平的值
+cell = tr.GetCell(1);
+ct = cell.GetCTTc();
+cp = ct.AddNewTcPr();
+cp.gridSpan = new CT_DecimalNumber();
+cp.gridSpan.val = "3"; //合并2列 3\4 
+cp.AddNewVAlign().val = ST_VerticalJc.center;
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;//单元格内容居中显示
+ct.GetPList()[0].AddNewR().AddNewT().Value = model.LANGUAGELEVEL;
+
+tr.RemoveCell(2);//移除多余的一个单元格
+tr.RemoveCell(2);//移除多余的一个单元格
+#endregion
+
+#region 第11行是否为企业法人
+
+//获取第11行
+tr = table.GetRow(10);//获取第11行
+//合并2列显示掌握外语水平
+cell = tr.GetCell(0);
+ct = cell.GetCTTc();
+cp = ct.AddNewTcPr();
+cp.gridSpan = new CT_DecimalNumber();
+cp.gridSpan.val = "2"; //合并2列 3\4 
+cp.AddNewVAlign().val = ST_VerticalJc.center;
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;//单元格内容居中显示
+//ct.GetPList()[0].AddNewR().AddNewT().Value = "";
+tr.RemoveCell(1);//移除多余的一个单元格
+
+cell = tr.GetCell(0);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("是否为企业法人");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+//合并2列显示掌握外语水平的值
+cell = tr.GetCell(1);
+ct = cell.GetCTTc();
+cp = ct.AddNewTcPr();
+cp.gridSpan = new CT_DecimalNumber();
+cp.gridSpan.val = "3"; //合并2列 3\4 
+cp.AddNewVAlign().val = ST_VerticalJc.center;
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;//单元格内容居中显示
+ct.GetPList()[0].AddNewR().AddNewT().Value = model.ISCORPORATE;
+
+tr.RemoveCell(2);//移除多余的一个单元格
+tr.RemoveCell(2);//移除多余的一个单元格
+#endregion
+
+#region 第12行注册企业性质是否涉及外资
+
+//获取第12行
+tr = table.GetRow(11);//获取第12行
+//合并2列显示掌握外语水平
+cell = tr.GetCell(0);
+ct = cell.GetCTTc();
+cp = ct.AddNewTcPr();
+cp.gridSpan = new CT_DecimalNumber();
+cp.gridSpan.val = "2"; //合并2列 3\4 
+cp.AddNewVAlign().val = ST_VerticalJc.center;
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;//单元格内容居中显示
+// ct.GetPList()[0].AddNewR().AddNewT().Value = "";
+
+tr.RemoveCell(1);//移除多余的一个单元格
+
+cell = tr.GetCell(0);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("注册企业性质是否涉及外资");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+//合并2列显示掌握外语水平的值
+cell = tr.GetCell(1);
+ct = cell.GetCTTc();
+cp = ct.AddNewTcPr();
+cp.gridSpan = new CT_DecimalNumber();
+cp.gridSpan.val = "3"; //合并2列 3\4 
+cp.AddNewVAlign().val = ST_VerticalJc.center;
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;//单元格内容居中显示
+ct.GetPList()[0].AddNewR().AddNewT().Value = model.ISFOREIGNINVESTMENT;
+tr.RemoveCell(2);//移除多余的一个单元格
+tr.RemoveCell(2);//移除多余的一个单元格
+#endregion
+
+#region 第13行是否投资经营何经济组织
+//获取第13行
+tr = table.GetRow(12);//获取第13行
+//合并2列是否投资经营何经济组织
+cell = tr.GetCell(0);
+ct = cell.GetCTTc();
+cp = ct.AddNewTcPr();
+cp.gridSpan = new CT_DecimalNumber();
+cp.gridSpan.val = "2"; //合并2列 3\4 
+cp.AddNewVAlign().val = ST_VerticalJc.center;
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;//单元格内容居中显示
+//ct.GetPList()[0].AddNewR().AddNewT().Value = "";
+tr.RemoveCell(1);//移除多余的一个单元格
+
+cell = tr.GetCell(0);
+par = cell.AddParagraph();
+run = par.CreateRun();
+par.Alignment = ParagraphAlignment.CENTER;//水平居中显示
+run.SetText("是否投资经营何经济组织");
+run.IsBold = true;
+cell.SetVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
+
+//合并2列显示掌握外语水平的值
+cell = tr.GetCell(1);
+ct = cell.GetCTTc();
+cp = ct.AddNewTcPr();
+cp.gridSpan = new CT_DecimalNumber();
+cp.gridSpan.val = "3"; //合并2列 3\4 
+cp.AddNewVAlign().val = ST_VerticalJc.center;
+ct.GetPList()[0].AddNewPPr().AddNewJc().val = ST_Jc.center;//单元格内容居中显示
+ct.GetPList()[0].AddNewR().AddNewT().Value = model.ISINVEST;
+tr.RemoveCell(2);//移除多余的一个单元格
+tr.RemoveCell(2);//移除多余的一个单元格
+#endregion
+
+// 导出word文件
+string directoryPath = "/upload/file/";
+if(!System.IO.Directory.Exists(Utils.GetMapPath(directoryPath)))
+{
+    System.IO.Directory.CreateDirectory(Utils.GetMapPath(directoryPath));
+}
+string filePath = directoryPath + fileName + ".doc";
+FileStream file = new FileStream(Utils.GetMapPath(filePath), FileMode.Create);
+m_Doc.Write(file);
+file.Close();
+
+// 当前对话
+System.Web.HttpContext curContext = System.Web.HttpContext.Current;
+ 设置编码和附件格式  
+curContext.Response.ContentType = "application/msword";
+curContext.Response.ContentEncoding = System.Text.Encoding.GetEncoding("gb2312");
+curContext.Response.Charset = "gb2312";
+if(!string.IsNullOrEmpty(fileName))
+{
+    //处理中文名乱码问题 
+    fileName = System.Web.HttpUtility.UrlEncode(fileName, System.Text.Encoding.UTF8);
+    curContext.Response.AppendHeader("Content-Disposition", ("attachment;filename=" + fileName + ".doc"));
+}
+// 返回客户端
+curContext.Response.Clear();
+curContext.Response.WriteFile(filePath);
+curContext.Response.End();
+
+/// <summary>
+/// word替换图片的xml代码
+/// </summary>
+/// <param name="doc"></param>
+/// <param name="run"></param>
+/// <param name="id"></param>
+/// <param name="width"></param>
+/// <param name="height"></param>
+public static void CreatePicture(XWPFDocument doc, XWPFRun run, string id, int width, int height)
+{
+    int EMU = 9525;
+    width *= EMU;
+    height *= EMU;
+
+    string picXml = ""
+            + "      <pic:pic xmlns:pic=\"http://schemas.openxmlformats.org/drawingml/2006/picture\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\">"
+            + "         <pic:nvPicPr>" + "            <pic:cNvPr id=\""
+            + "0"
+            + "\" name=\"Generated\"/>"
+            + "            <pic:cNvPicPr/>"
+            + "         </pic:nvPicPr>"
+            + "         <pic:blipFill>"
+            + "            <a:blip r:embed=\""
+            + id
+            + "\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"/>"
+            + "            <a:stretch>"
+            + "               <a:fillRect/>"
+            + "            </a:stretch>"
+            + "         </pic:blipFill>"
+            + "         <pic:spPr>"
+            + "            <a:xfrm>"
+            + "               <a:off x=\"0\" y=\"0\"/>"
+            + "               <a:ext cx=\""
+            + width
+            + "\" cy=\""
+            + height
+            + "\"/>"
+            + "            </a:xfrm>"
+            + "            <a:prstGeom prst=\"rect\">"
+            + "               <a:avLst/>"
+            + "            </a:prstGeom>"
+            + "         </pic:spPr>"
+            + "      </pic:pic>";
+
+    NPOI.OpenXmlFormats.Dml.WordProcessing.CT_Inline inline = run.GetCTR().AddNewDrawing().AddNewInline();
+
+    inline.graphic = new CT_GraphicalObject();
+    inline.graphic.graphicData = new CT_GraphicalObjectData();
+    inline.graphic.graphicData.uri = "http://schemas.openxmlformats.org/drawingml/2006/picture";
+
+    try
+    {
+        inline.graphic.graphicData.AddPicElement(picXml);
+
+    }
+    catch(XmlException xe)
+    {
+
+    }
+
+    NPOI.OpenXmlFormats.Dml.WordProcessing.CT_PositiveSize2D extent = inline.AddNewExtent();
+    extent.cx = width;
+    extent.cy = height;
+
+    NPOI.OpenXmlFormats.Dml.WordProcessing.CT_NonVisualDrawingProps docPr = inline.AddNewDocPr();
+    docPr.id = 1;
+    docPr.name = "Image" + id;
+}
+
